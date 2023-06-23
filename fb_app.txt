@@ -1,0 +1,608 @@
+Dashboard.js-
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getAuth, signOut } from 'firebase/auth';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import './Dashboard.css';
+
+const Dashboard = () => {
+  const [feedbackList, setFeedbackList] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const database = getDatabase();
+    const feedbackRef = ref(database, 'feedback');
+
+    onValue(feedbackRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const feedbackArray = Object.values(data);
+        setFeedbackList(feedbackArray);
+      } else {
+        setFeedbackList([]);
+      }
+    });
+  }, []);
+
+  const handleSignOut = () => {
+    const auth = getAuth();
+    signOut(auth)
+      .then(() => {
+        // Sign out successful
+        navigate('/login'); // Redirect to login page after sign out
+      })
+      .catch((error) => {
+        console.log('Error signing out:', error);
+      });
+  };
+
+  return (
+    <div className='container'>
+      <h2>Feedback Application</h2>
+      <h4>Hello, Email</h4>
+      <button type='button' onClick={handleSignOut}>
+        Sign out
+      </button>
+      <br />
+      <div className='scrollable'>
+        <ul>
+          {feedbackList.map((feedback, index) => (
+            <li key={index}>
+              Feedback {index + 1}
+              <button className='view'>
+                <Link to={`/view/${index + 1}`}>View</Link>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <br />
+      <button type='button'>
+        <Link to='/add'>Add new</Link>
+      </button>
+    </div>
+  );
+};
+
+export default Dashboard;
+
+Login.js-
+import React, { useState } from 'react';
+// import axios from 'axios';
+import './Login.css';
+import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import {auth} from "./config/fire";
+
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+    // Signed in 
+        const user = userCredential.user;
+        navigate('/dashboard');
+    // ...
+    })
+    .catch((error) => {
+      setError('Wrong credentials')
+    // ..
+    });
+    // Perform validation
+    if (!email || !password) {
+      setError('Please enter email and password');
+    } else {
+      // Submit the form
+      setError('');
+      // Add your form submission logic here
+      
+    }
+  };
+
+  return (
+    <div className='container'>
+      <h2>Feedback Application</h2>
+      <form onSubmit={handleSubmit}>
+        <div className='email'>
+          <label>Email:</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className='password'>
+          <label>Password:</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        {error && <p className="error">{error}</p>}
+        <div className='buttons'>
+          <button type="submit">Login</button>
+          <button type="button"><Link to="/admin">Admin Login</Link></button>
+          <button type="signup"><Link to="/signup">SignUp</Link></button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default Login;
+
+fire.js- database
+import React, { useState } from 'react';
+// import axios from 'axios';
+import './Login.css';
+import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import {auth} from "./config/fire";
+
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+    // Signed in 
+        const user = userCredential.user;
+        navigate('/dashboard');
+    // ...
+    })
+    .catch((error) => {
+      setError('Wrong credentials')
+    // ..
+    });
+    // Perform validation
+    if (!email || !password) {
+      setError('Please enter email and password');
+    } else {
+      // Submit the form
+      setError('');
+      // Add your form submission logic here
+      
+    }
+  };
+
+  return (
+    <div className='container'>
+      <h2>Feedback Application</h2>
+      <form onSubmit={handleSubmit}>
+        <div className='email'>
+          <label>Email:</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div className='password'>
+          <label>Password:</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        {error && <p className="error">{error}</p>}
+        <div className='buttons'>
+          <button type="submit">Login</button>
+          <button type="button"><Link to="/admin">Admin Login</Link></button>
+          <button type="signup"><Link to="/signup">SignUp</Link></button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default Login;
+
+Add.js-
+import React, { useState } from 'react';
+import 'firebase/database';
+import { Link, useNavigate } from 'react-router-dom';
+import { getDatabase, ref, push } from 'firebase/database';
+import { uid } from 'uid';
+
+const Add = () => {
+  const [fb, setFb] = useState('');
+  const [rating, setRating] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const writeToDatabase = () => {
+    const database = getDatabase();
+    const feedbackRef = ref(database, 'feedback');
+    const firebaseId = uid(); // Generate a unique Firebase ID
+
+    const newFeedback = {
+      firebaseId: firebaseId, // Store the Firebase ID along with the feedback data
+      fb: fb,
+      rating: rating,
+    };
+
+    push(feedbackRef, newFeedback)
+      .then(() => {
+        navigate('/tyadd');
+      })
+      .catch((error) => {
+        console.log('Error writing to database:', error);
+      });
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+
+    if (!fb || !rating) {
+      setError('Please enter feedback and rating');
+    } else {
+      setError('');
+      writeToDatabase();
+    }
+  };
+
+  return (
+    <div className='container'>
+      <h2>Feedback Application</h2>
+      <h4>Hello, Email</h4>
+      <button type='button'>
+        <Link to='/dashboard'>Back</Link>
+      </button>
+      <br />
+      <form onSubmit={handleSubmit}>
+        <div className='text-area'>
+          <textarea
+            placeholder='Write Feedback here'
+            value={fb}
+            onChange={(e) => {
+              setFb(e.target.value);
+            }}
+          ></textarea>
+        </div>
+        <label>Rate Us</label>
+        <div className='stars'>
+          <label>
+            <input
+              type='radio'
+              name='rating'
+              value='1'
+              onChange={(e) => {
+                setRating(e.target.value);
+              }}
+            />
+            1
+          </label>
+          <label>
+            <input
+              type='radio'
+              name='rating'
+              value='2'
+              onChange={(e) => {
+                setRating(e.target.value);
+              }}
+            />
+            2
+          </label>
+          <label>
+            <input
+              type='radio'
+              name='rating'
+              value='3'
+              onChange={(e) => {
+                setRating(e.target.value);
+              }}
+            />
+            3
+          </label>
+          <label>
+            <input
+              type='radio'
+              name='rating'
+              value='4'
+              onChange={(e) => {
+                setRating(e.target.value);
+              }}
+            />
+            4
+          </label>
+          <label>
+            <input
+              type='radio'
+              name='rating'
+              value='5'
+              checked={rating === '5'}
+              onChange={(e) => {
+                setRating(e.target.value);
+              }}
+            />
+            5
+          </label>
+        </div>
+        {error && <p className='error'>{error}</p>}
+        <br />
+        <button type='submit'>Submit</button>
+      </form>
+    </div>
+  );
+};
+
+export default Add;
+
+View.js-
+import React, { useEffect, useState } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { getDatabase, ref, onValue, remove } from 'firebase/database';
+import './Dashboard.css';
+
+const View = () => {
+  const { feedbackId } = useParams();
+  const navigate = useNavigate();
+  const database = getDatabase();
+  const [feedback, setFeedback] = useState('');
+  const [rating, setRating] = useState('');
+  const [firebaseId, setFirebaseId] = useState('');
+
+  useEffect(() => {
+    const feedbackRef = ref(database, 'feedback');
+
+    const fetchFeedback = onValue(feedbackRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const feedbackEntry = Object.values(data)[feedbackId - 1];
+        setFeedback(feedbackEntry.fb);
+        setRating(feedbackEntry.rating);
+        setFirebaseId(feedbackEntry.firebaseId);
+      }
+    });
+
+    return () => {
+      fetchFeedback(); // Clean up the event listener when the component is unmounted
+    };
+  }, [database, feedbackId]);
+
+  const deleteFeedback = () => {
+    const feedbackRef = ref(database, `feedback`);
+
+    remove(feedbackRef)
+      .then(() => {
+        navigate('/dashboard'); // Redirect to the dashboard after deletion
+      })
+      .catch((error) => {
+        console.log('Error deleting feedback:', error);
+      });
+  };
+
+  return (
+    <div className='container'>
+      <h2>Feedback Application</h2>
+      <h3>Feedback {feedbackId}</h3>
+      <p>{feedback}</p>
+      <h3>Rating</h3>
+      <label>{rating}</label>
+      <button type='button'>
+        <Link to='/dashboard'>Back</Link>
+      </button>
+      <button type='button' onClick={deleteFeedback}>
+        Delete
+      </button>
+    </div>
+  );
+};
+
+export default View;
+
+Tyadd.js-
+import { Link } from "react-router-dom";
+
+const TyAdd =()=>{
+    return(
+        <>
+            <h2>Thank You</h2>
+            <div className="button">
+                <button type="submit"><Link to="/dashboard">Dashboard</Link></button>
+            </div>
+        </>
+    );
+}
+export default TyAdd;
+
+AdminDash.js-
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { getAuth, signOut } from 'firebase/auth';
+import { getDatabase, ref, onValue } from 'firebase/database';
+import './Dashboard.css';
+
+const Dashboard = () => {
+  const [feedbackList, setFeedbackList] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const database = getDatabase();
+    const feedbackRef = ref(database, 'feedback');
+
+    onValue(feedbackRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const feedbackArray = Object.values(data);
+        setFeedbackList(feedbackArray);
+      } else {
+        setFeedbackList([]);
+      }
+    });
+  }, []);
+
+  const handleSignOut = () => {
+    const auth = getAuth();
+    signOut(auth)
+      .then(() => {
+        // Sign out successful
+        navigate('/login'); // Redirect to login page after sign out
+      })
+      .catch((error) => {
+        console.log('Error signing out:', error);
+      });
+  };
+
+  return (
+    <div className='container'>
+      <h2>Feedback Application</h2>
+      <h4>Hello, Email</h4>
+      <button type='button' onClick={handleSignOut}>
+        Sign out
+      </button>
+      <br />
+      <div className='scrollable'>
+        <ul>
+          {feedbackList.map((feedback, index) => (
+            <li key={index}>
+              Feedback {index + 1}
+              <button className='view'>
+                <Link to={`/view/${index + 1}`}>View</Link>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <br />
+    </div>
+  );
+};
+
+export default Dashboard;
+
+Signup.js-
+import React, { useState } from 'react';
+import './SignUp.css';
+import { useNavigate } from 'react-router-dom';
+
+const SignUp = () => {
+  const navigate = useNavigate(); // Create a navigate function using useNavigate
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Perform validation
+    if (!name || !email || !password || !confirmPassword) {
+      setError('Please fill in all fields');
+    } else if (password !== confirmPassword) {
+      setError('Passwords do not match');
+    } else {
+      // Clear any previous error messages
+      setError('');
+      // Navigate to the desired location
+      navigate('/dashboard');
+    }
+  };
+
+  return (
+    <div className="container">
+      <h2>Sign Up</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Name:</label>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Email:</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Password:</label>
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        <div>
+          <label>Confirm Password:</label>
+          <input
+            type="password"
+            required
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+        </div>
+        {error && <p className="error">{error}</p>}
+        <div>
+          <button type="submit">Sign Up</button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default SignUp;
+
+Signup.css-
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid;
+    padding: 10px;
+    margin: 10px;
+    max-width: 500px; /* Adjust the maximum width to your preference */
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  
+  h2 {
+    text-align: center;
+    margin: 30px
+  }
+  
+  form{
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+  }
+  
+  div {
+    margin-bottom: 10px;
+  }
+  
+  label {
+    font-weight: bold;
+  }  
+  button {
+    padding: 8px 16px;
+    /* background-color: #4CAF50; */
+    color: white;
+    border: none;
+    cursor: pointer;
+    /* margin-right: 10px; */
+  }
+
+  button[type="submit"] {
+    background-color: #7493e3f2;
+  }
